@@ -1,36 +1,13 @@
-Convert::IBM390p -- functions for manipulating mainframe data
+Convert::IBM390p -- OBSOLETE
 
-Convert::IBM390p is a Perl module.  It supplies various functions that
-you may find useful when messing with IBM System/3[679]0 data.  See the
-POD documentation in the module, or "man IBM390p" after you have
-installed it.
+Convert::IBM390p is an obsolete Perl module.  It used to be a Perl-only
+version of Convert::IBM390, but that module now includes both XS and
+Perl-only code.  Install Convert::IBM390 instead.
 
 How to Install
 ==============
 
-The usual:
-
-    perl Makefile.PL
-    make
-    make test
-    make install
-
-One More Note
-=============
-
-*** IF YOU CAN USE IBM390 RATHER THAN IBM390p, YOU SHOULD. ***
-
-As of this release, IBM390 and IBM390p have diverged.  This module
-was originally a Perl-only version of Convert::IBM390.  Now, however,
-IBM390 contains the functions packeb and unpackeb, which are strongly
-reminiscent of Perl's built-in pack and unpack; these would be slow and
-difficult to implement in Perl.  Thus, this module provides separate
-functions for converting packed and zoned numbers but no packeb or
-unpackeb.
-
-I recommend that you install IBM390 if possible.  It is written in 
-a combination of Perl and C; in my testing, the IBM390 versions of
-the conversions ran 5-6 times as fast as the pure Perl versions.
+Don't!
 
 
 Geoffrey Rommel
@@ -38,4 +15,4 @@ Technical Consultant
 Sears, Roebuck and Co.
 grommel@sears.com
 
-July 1999
+September 1999
