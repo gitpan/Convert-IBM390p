@@ -1,0 +1,7 @@
+Revision history for Perl extension Convert::IBM390p.
+
+0.01  Tue Jan 12 12:30:46 1999
+	- original version; created by h2xs 1.18
+	- Geoffrey Rommel (grommel@sears.com)
+      Thu Apr  8 12:37:08 EDT 1999
+	- cosmetic name change only
