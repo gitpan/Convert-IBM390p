@@ -1,20 +1,22 @@
 package Convert::IBM390p;
 
+use Carp;
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 require Exporter;
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-@EXPORT_OK = qw(asc2eb eb2asc eb2ascp hexdump pdi pdo fcs_xlate);
-$VERSION = '0.01';
+@EXPORT_OK = qw(asc2eb eb2asc eb2ascp hexdump pdi pdo zdi zdo
+  fcs_xlate);
+$VERSION = '0.06';
 
-use Carp;
+%EXPORT_TAGS = ( all => [ @EXPORT_OK ] );
 
 # $warninv = issue warning message if a field is invalid.  Default
-# is FALSE (don't issue the message).  Used by pdi and pdo.
-my $warninv = 0;
+# is FALSE (don't issue the message).  Used by pdi, pdo, zdi, zdo.
+$Convert::IBM390p::warninv = 0;
 
 my ($a2e_table, $e2a_table, $e2ap_table);
 $a2e_table = pack "H512",
@@ -38,10 +40,10 @@ $e2a_table = pack "H512",
  "5cf7535455565758595ab2d4d6d2d3d530313233343536373839b3dbdcd9da9f";
 
 $e2ap_table =
-  " " x 64 .
-  "           .<(+|&         !\$*); -/         ,%_>?         `:#\@\'=\"".
-  " abcdefghi       jklmnopqr       ~stuvwxyz   [               ]  ".
-  "{ABCDEFGHI      }JKLMNOPQR      \\ STUVWXYZ      0123456789      ";
+  ' ' x 64 .
+  '           .<(+|&         !$*); -/         ,%_>?         `:#@\'="'.
+  ' abcdefghi       jklmnopqr       ~stuvwxyz   [               ]  '.
+  '{ABCDEFGHI      }JKLMNOPQR      \\ STUVWXYZ      0123456789      ';
 
 # ASCII to EBCDIC
 sub asc2eb {
@@ -96,6 +98,46 @@ sub pdo {
  $sign = ($num >= 0) ? "C" : "D";
  $outwidth *= 2;
  return pack("H$outwidth", $digits . $sign);
+}
+
+# Zoned Decimal In -- returns a Perl number
+sub zdi {
+ my ($zoned, $ndec) = @_;
+ $ndec ||= 0;
+ my ($w, $digits, $sign, $final);
+ if ($zoned =~ m/[\xD0-\xD9]/) { $sign = -1; }
+ else  { $sign = 1; }
+ $zoned = eb2asc($zoned);
+ $zoned =~ tr/ {ABCDEFGHI}JKLMNOPQR/001234567890123456789/;
+ if ( $zoned !~ /^\d+$/ ) {
+    Carp::carp "zdi: Invalid zoned value $zoned"
+      if $Convert::IBM390p::warninv;
+    return undef();
+ }
+ $final = $sign * $zoned;
+ $final /= 10 ** $ndec  if $ndec != 0;
+ return $final + 0;
+}
+
+# Zoned Decimal Out -- converts a Perl number to a packed field
+sub zdo {
+ my ($num, $outwidth, $ndec) = @_;
+ $outwidth ||= 8;
+ $ndec ||= 0;
+ if ( $num !~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/ ) {
+    Carp::carp "zdo: Input is not a number" if $Convert::IBM390p::warninv;
+    return undef();
+ }
+ my ($digits, $sign);
+# sprintf will round to the appropriate number of places.
+ $digits = sprintf("%0${outwidth}d", abs($num * (10 ** $ndec)));
+ my $last = length($digits) - 1;
+ if ($num >= 0) {
+    substr($digits, $last, 1) =~ tr/0123456789/{ABCDEFGHI/;
+ } else {
+    substr($digits, $last, 1) =~ tr/0123456789/}JKLMNOPQR/;
+ }
+ return asc2eb($digits);
 }
 
 # Print an entire string in hexdump format, 32 bytes at a time
@@ -169,6 +211,8 @@ Convert::IBM390p -- functions for manipulating mainframe data
 
   $num = pdi($packed [,ndec]);
   $packed = pdo($num [,outbytes [,ndec]]);
+  $num = zdi($zoned [,ndec]);
+  $zoned = zdo($num [,outbytes [,ndec]]);
 
   @lines = hexdump($string [,startaddr [,charset]]);
 
@@ -176,7 +220,8 @@ Convert::IBM390p -- functions for manipulating mainframe data
 
 B<Convert::IBM390p> supplies various functions that you may find useful
 when messing with IBM System/3[679]0 data.  No functions are exported
-automatically; you must ask for the ones you want.
+automatically; you must ask for the ones you want.  "use ... qw(:all)"
+exports all functions.
 
 By the way, this module is called "IBM390p" because it will deal with
 data from any mainframe operating system.  Nothing about it is
@@ -237,11 +282,48 @@ the undefined value.  By default, no warning message will be issued
 in this case, but if you set the variable $Convert::IBM390p::warninv
 to 1 (or any other true value), a warning will be issued.
 
+=item B<zdi> PACKED [NDEC]
+
+Zoned Decimal In: converts an EBCDIC zoned number to a Perl number.
+The first argument is the zoned field; the second (optional) is a
+number of decimal places to assume (default = 0).  For instance:
+
+  zdi(x'F0F1F2F3')      => 123
+  zdi(x'F0F1F2F3D5', 2) => -12.35
+  zdi(x'F0C0', 1)       => 0
+
+If the first argument is not a valid zoned field, zdi will return
+the undefined value.  By default, no warning message will be issued
+in this case, but if you set the variable $Convert::IBM390p::warninv
+to 1 (or any other true value), a warning will be issued.
+
+=item B<zdo> NUMBER [OUTBYTES [NDEC]]
+
+Zoned Decimal Out: converts a Perl number to a zoned field.  
+The first argument is a Perl number; the second is the number of bytes
+to put in the output field (default = 8); the third is the number of
+decimal places to round to (default = 0).  For instance:
+
+  zdo(-234)          => x'F0F0F0F0F0F2F3D4'
+  zdo(-234, 5)       => x'F0F0F2F3D4'
+  zdo(356.777, 5, 2) => x'F3F5F6F7C8'
+  zdo(0, 4)          => x'F0F0F0C0'
+
+If the first argument is not a valid Perl number, zdo will return
+the undefined value.  By default, no warning message will be issued
+in this case, but if you set the variable $Convert::IBM390p::warninv
+to 1 (or any other true value), a warning will be issued.
+
+Zoned output will always have an overpunch in the last byte for the sign
+(e.g., x'C1' (EBCDIC 'A') for +1 or x'D3' (EBCDIC 'L') for -3).  If
+you want unsigned numbers, you can use sprintf() and then translate
+the result: e.g., C<asc2eb(sprintf("%08d", $num))>.
+
 =item B<hexdump> STRING [STARTADDR [CHARSET]]
 
 Generate a hexadecimal dump of STRING.  The dump is similar to a
-SYSABEND dump in MVS: each line contains an address, 32 bytes of
-hexadecimal data, and the same data in printable form.  This function
+SYSABEND dump in MVS: each line contains an address, 32 bytes of data
+in hexadecimal, and the same data in printable form.  This function
 returns an array of lines, each of which is terminated with a newline.
 This allows them to be printed immediately; for instance, you can say
 "print hexdump($crud);".

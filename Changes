@@ -5,3 +5,8 @@ Revision history for Perl extension Convert::IBM390p.
 	- Geoffrey Rommel (grommel@sears.com)
       Thu Apr  8 12:37:08 EDT 1999
 	- cosmetic name change only
+
+0.06  Wed Jul 28 07:45:55 1999
+	- Corresponds to Convert::IBM390 version 0.06 but has diverged
+	  (see README).
+	- Added zdi and zdo.

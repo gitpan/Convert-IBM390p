@@ -1,15 +1,15 @@
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
-######################### We start with some black magic to print on failure.
+################### We start with some black magic to print on failure.
 
-BEGIN { $| = 1; print "1..9\n"; }
+BEGIN { $| = 1; print "1..13\n"; }
 END {print "not ok 1\n" unless $loaded;}
-use Convert::IBM390p qw(asc2eb eb2asc eb2ascp hexdump pdi pdo);
+use Convert::IBM390p qw(:all);
 $loaded = 1;
 print "ok 1\n";
 
-######################### End of black magic.
+################### End of black magic.
 
 my $failed = 0;
 #----- asc2eb
@@ -67,10 +67,33 @@ print "   ..............";
 my $pd = pdo("notanum");
 was_it_ok(9, ! defined($pd));
 
-if ($failed == 0) { print "All tests successful.\n" }
+#----- zdi
+print "zdi..............";
+my @zd = (pack("H*", "F0F0F3F9C8"), pack("H*", "F0F0F4F9D0"));
+@perlnum = (zdi($zd[0]), zdi($zd[1]));
+was_it_ok(10, ($perlnum[0] == 398) && ($perlnum[1] == -490));
+
+#----- zdi with undefined result
+print "   ..............";
+$perlnum = zdi(pack("H*", "F0F0A3F98C"));
+was_it_ok(11, ! defined($perlnum));
+
+#----- zdo
+print "zdo..............";
+@zd = (zdo(5.67, 4,2), zdo(0, 3), zdo(-89, 3));
+was_it_ok(12, $zd[0] eq "\xF0\xF5\xF6\xC7" &&
+    $zd[1] eq "\xF0\xF0\xC0" &&
+    $zd[2] eq "\xF0\xF8\xD9");
+
+#----- zdo with undefined result
+print "   ..............";
+$perlnum = zdo("notanum");
+was_it_ok(13, ! defined($perlnum));
+
+if ($failed == 0) { print "All tests successful.\n"; }
 else {
-   $ess = ($failed == 1) ? "" : "s";
-   print "$failed test$ess failed!  There is no joy in Mudville.\n";
+   $tt = ($failed == 1) ? "1 test" : "$failed tests";
+   print "$tt failed!  There is no joy in Mudville.\n";
 }
 
 

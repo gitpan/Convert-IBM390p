@@ -4,4 +4,5 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'	=> 'Convert::IBM390p',
     'VERSION_FROM' => 'IBM390p.pm', # finds $VERSION
+    'dist'	=> { COMPRESS=>'gzip' },
 );

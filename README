@@ -20,12 +20,17 @@ One More Note
 
 *** IF YOU CAN USE IBM390 RATHER THAN IBM390p, YOU SHOULD. ***
 
-This module is a Perl-only version of Convert::IBM390.  IBM390 is
-written in a combination of Perl and C; in my testing, the IBM390
-versions of pdi, pdo, and fcs_xlate ran 5-6 times as fast as the pure
-Perl versions.  If, however, you have trouble compiling or installing
-IBM390, you can use this module instead.  I might even be able to
-address your installation concerns some day! :-)
+As of this release, IBM390 and IBM390p have diverged.  This module
+was originally a Perl-only version of Convert::IBM390.  Now, however,
+IBM390 contains the functions packeb and unpackeb, which are strongly
+reminiscent of Perl's built-in pack and unpack; these would be slow and
+difficult to implement in Perl.  Thus, this module provides separate
+functions for converting packed and zoned numbers but no packeb or
+unpackeb.
+
+I recommend that you install IBM390 if possible.  It is written in 
+a combination of Perl and C; in my testing, the IBM390 versions of
+the conversions ran 5-6 times as fast as the pure Perl versions.
 
 
 Geoffrey Rommel
@@ -33,4 +38,4 @@ Technical Consultant
 Sears, Roebuck and Co.
 grommel@sears.com
 
-January 1999
+July 1999
